@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: kite-libai
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.kite.libai: INFO
