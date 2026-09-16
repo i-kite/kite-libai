@@ -1,0 +1,52 @@
+# 测试环境配置。
+#
+# 本文件位于 src/test/resources,在测试 classpath 中优先级高于主配置,
+# 会整体遮蔽 src/main/resources/application.yml,因此所有 @SpringBootTest
+# 自动使用 H2 内存库,无需在每个测试类上标注 @ActiveProfiles。
+#
+# H2 以 MySQL 兼容模式运行,直接复用生产建表脚本 db/mysql/schema.sql,
+# 避免维护两套 DDL 导致测试与生产结构漂移。
+
+spring:
+  application:
+    name: kite-libai
+  jackson:
+    default-property-inclusion: non_null
+  datasource:
+    driver-class-name: org.h2.Driver
+    # 库名带 ${random.uuid}:每个 Spring 测试上下文拿到一个独立的内存库。
+    #
+    # 必须这样做的原因:本项目存在多套注解组合(@SpringBootTest、
+    # @SpringBootTest(RANDOM_PORT)、@SpringBootTest+@AutoConfigureMockMvc+@Transactional),
+    # Spring 会为每套组合各建一个上下文,而每个上下文启动时都会执行一遍下面的
+    # spring.sql.init 脚本(含 DROP TABLE)。若共用同一个库名,后创建的上下文
+    # 会把正在被其他上下文使用的表推倒重建,导致测试结果随类执行顺序随机失败。
+    url: jdbc:h2:mem:kite_libai_${random.uuid};MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ''
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/mysql/schema.sql
+      data-locations: classpath:db/mysql/data.sql
+      encoding: UTF-8
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.kite.libai.system.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com.kite.libai: info
+    # 需要排查 SQL 时把下面一行改为 debug
+    com.kite.libai.system.mapper: info

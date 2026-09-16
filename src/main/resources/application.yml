@@ -1,12 +1,50 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
 spring:
   application:
     name: kite-libai
   jackson:
+    # 响应体不返回 null 字段,减少无效传输
     default-property-inclusion: non_null
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 数据库连接信息全部走环境变量,镜像中不硬编码任何生产凭据
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:kite_libai}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      pool-name: KiteLibaiHikariPool
+  sql:
+    init:
+      # 生产环境不自动执行建表脚本,DDL 由 db/mysql/schema.sql 手工或流水线单独执行
+      mode: never
 
-server:
-  port: 8080
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.kite.libai.system.domain
+  configuration:
+    # 开启下划线转驼峰,XML 中可直接用 resultType 而不必写 resultMap
+    map-underscore-to-camel-case: true
+    # 查询结果中 null 值字段也参与映射,避免前端拿不到字段
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      # 逻辑删除全局配置,与 BaseEntity 上的 @TableLogic 对应
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
 logging:
   level:
-    com.kite.libai: INFO
+    com.kite.libai: info

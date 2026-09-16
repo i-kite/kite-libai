@@ -109,19 +109,73 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke test the image
+      # 冒烟测试必须连真实 MySQL:应用在没有数据库时也能启动,/api/hello 照样返回 200,
+      # 只 curl 这一个端点会让"数据库连不上"这类故障完全逃过检查。
+      # 这一步同时验证了 db/mysql/*.sql 能在真实 MySQL 上执行。
+      - name: Smoke test the image against a real MySQL
         if: github.event_name != 'pull_request'
         run: |
+          set -euo pipefail
           IMAGE="$(echo '${{ steps.meta.outputs.tags }}' | head -n 1)"
-          docker run -d --name smoke -p 8080:8080 "$IMAGE"
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/api/hello > /tmp/out.json; then
-              echo "response: $(cat /tmp/out.json)"
-              grep -q 'Hello, World!' /tmp/out.json && exit 0
-              echo "unexpected payload" && exit 1
+
+          docker network create kite-net
+          docker run -d --name smoke-mysql --network kite-net \
+            -e MYSQL_ROOT_PASSWORD=root123 -e MYSQL_DATABASE=kite_libai \
+            mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+          echo "waiting for mysql..."
+          for i in $(seq 1 60); do
+            if docker exec smoke-mysql mysqladmin ping -uroot -proot123 --silent 2>/dev/null; then
+              echo "mysql ready after ${i} attempts"; break
             fi
             sleep 2
           done
-          echo "service did not become healthy" >&2
-          docker logs smoke >&2
-          exit 1
+
+          docker exec -i smoke-mysql mysql -uroot -proot123 kite_libai \
+            < src/main/resources/db/mysql/schema.sql
+          docker exec -i smoke-mysql mysql -uroot -proot123 kite_libai \
+            < src/main/resources/db/mysql/data.sql
+
+          docker run -d --name smoke --network kite-net -p 8080:8080 \
+            -e MYSQL_HOST=smoke-mysql \
+            -e MYSQL_DATABASE=kite_libai \
+            -e MYSQL_USERNAME=root \
+            -e MYSQL_PASSWORD=root123 \
+            "$IMAGE"
+
+          echo "waiting for application..."
+          for i in $(seq 1 45); do
+            if curl -fsS -m 5 http://localhost:8080/api/hello > /tmp/hello.json 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          echo "--- GET /api/hello ---"
+          cat /tmp/hello.json
+          grep -q 'Hello, World!' /tmp/hello.json
+
+          echo "--- GET /api/system/dept/tree ---"
+          curl -fsS -m 15 http://localhost:8080/api/system/dept/tree > /tmp/tree.json
+          cat /tmp/tree.json
+          # 校验数据库链路真的通了,并且中文没有乱码
+          grep -q '总公司' /tmp/tree.json
+
+          echo "--- GET /api/system/permission/1 ---"
+          curl -fsS -m 15 http://localhost:8080/api/system/permission/1 > /tmp/perm.json
+          cat /tmp/perm.json
+          grep -q '\*:\*:\*' /tmp/perm.json
+
+          echo "smoke test passed"
+
+      - name: Dump smoke test logs on failure
+        if: failure()
+        run: |
+          docker logs smoke 2>&1 | tail -100 || true
+          docker logs smoke-mysql 2>&1 | tail -30 || true
+
+      - name: Clean up smoke test containers
+        if: always()
+        run: |
+          docker rm -f smoke smoke-mysql || true
+          docker network rm kite-net || true

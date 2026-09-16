@@ -6,7 +6,11 @@ plugins {
 
 group = 'com.kite'
 version = '0.0.1-SNAPSHOT'
-description = 'Hello World REST web service'
+description = '权限管理系统后端服务'
+
+ext {
+    mybatisPlusVersion = '3.5.3.1'
+}
 
 java {
     toolchain {
@@ -22,7 +26,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // 持久层:MyBatis-Plus(自带 mybatis-spring-boot 自动配置)
+    implementation "com.baomidou:mybatis-plus-boot-starter:${mybatisPlusVersion}"
+
+    // 仅引入加密模块用于 BCrypt 密码存储,不引入完整 Spring Security 以免触发默认鉴权自动配置
+    implementation 'org.springframework.security:spring-security-crypto'
+
+    runtimeOnly 'mysql:mysql-connector-java'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // 测试用内存库,以 MySQL 兼容模式运行,避免单元测试依赖真实 MySQL 实例
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {

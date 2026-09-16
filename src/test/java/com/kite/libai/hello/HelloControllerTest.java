@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.kite.libai.web.GlobalExceptionHandler;
+import com.kite.libai.common.exception.GlobalExceptionHandler;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +74,8 @@ class HelloControllerTest {
 
         mockMvc.perform(get("/api/hello").param("name", tooLong.toString()))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
+                // 全局异常处理器已统一为 R 结构,校验失败返回 code = 400
+                .andExpect(jsonPath("$.code").value(400));
     }
 
     @Test

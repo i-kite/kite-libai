@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kite.libai.system.mapper.SysUserMapper">
+
+    <!-- 用户列表公共查询列;del_flag 不查询,与实体上 select = false 保持一致 -->
+    <sql id="selectUserColumns">
+        u.user_id, u.dept_id, u.user_name, u.nick_name, u.email, u.phonenumber,
+        u.sex, u.avatar, u.status, u.login_ip, u.login_date,
+        u.create_by, u.create_time, u.update_by, u.update_time, u.remark,
+        d.dept_name
+    </sql>
+
+    <!--
+      用户分页列表。
+      1. 手写 SQL 不走 @TableLogic,必须显式过滤 del_flag
+      2. 按部门筛选时连带子孙部门:用 ancestors 前后补逗号做 LIKE 匹配,
+         而不是 MySQL 的 FIND_IN_SET —— 后者在 H2 测试库中不存在
+    -->
+    <select id="selectUserPage" resultType="SysUser">
+        select
+        <include refid="selectUserColumns"/>
+        from sys_user u
+        left join sys_dept d on d.dept_id = u.dept_id and d.del_flag = 0
+        <where>
+            u.del_flag = 0
+            <if test="query.userName != null and query.userName != ''">
+                and u.user_name like concat('%', #{query.userName}, '%')
+            </if>
+            <if test="query.nickName != null and query.nickName != ''">
+                and u.nick_name like concat('%', #{query.nickName}, '%')
+            </if>
+            <if test="query.phonenumber != null and query.phonenumber != ''">
+                and u.phonenumber like concat('%', #{query.phonenumber}, '%')
+            </if>
+            <if test="query.status != null">
+                and u.status = #{query.status}
+            </if>
+            <if test="query.deptId != null">
+                and (
+                u.dept_id = #{query.deptId}
+                or u.dept_id in (
+                select sd.dept_id from sys_dept sd
+                where sd.del_flag = 0
+                and concat(',', sd.ancestors, ',') like concat('%,', #{query.deptId}, ',%')
+                )
+                )
+            </if>
+        </where>
+        order by u.dept_id, u.user_id
+    </select>
+
+</mapper>
