@@ -3,15 +3,17 @@ FROM eclipse-temurin:11-jdk-jammy AS builder
 
 WORKDIR /workspace
 
-# Copy build scripts first so dependency resolution is cached independently of source changes.
+# Copy only the build scripts first, then download every dependency. Because src/ is not
+# present yet, this layer is keyed solely on the build scripts: editing a .java file reuses
+# it instead of re-downloading ~18MB of dependencies.
 COPY gradlew settings.gradle build.gradle gradle.properties ./
 COPY gradle gradle
-RUN ./gradlew --no-daemon -q help
+RUN ./gradlew --no-daemon resolveDependencies
 
 COPY src src
 
 # Tests already ran in the CI test job; skip them here to keep the image build fast.
-RUN ./gradlew --no-daemon clean bootJar -x test
+RUN ./gradlew --no-daemon bootJar -x test
 
 # Split the fat jar into layers so Docker can cache dependencies separately from app code.
 RUN cp "$(find build/libs -name '*.jar' ! -name '*-plain.jar' | head -n 1)" app.jar \

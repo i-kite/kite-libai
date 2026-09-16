@@ -31,3 +31,15 @@ tasks.named('test') {
         events 'passed', 'skipped', 'failed'
     }
 }
+
+// Resolves the full compile + runtime dependency graph without compiling any source.
+// The Dockerfile runs this before copying src/, so editing a .java file no longer
+// invalidates the layer that holds the downloaded dependencies.
+tasks.register('resolveDependencies') {
+    description = 'Downloads every dependency needed to compile and package the application.'
+    group = 'build setup'
+    doLast {
+        configurations.compileClasspath.resolve()
+        configurations.runtimeClasspath.resolve()
+    }
+}
