@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-image:
-    uses: x-k-io/ci-templates/.github/workflows/java-service-build-image.yml@main
+    uses: x-k-io/ci-template/.github/workflows/java-service-build-image.yml@main
     with:
       image_name: ${{ github.repository }}
       context_path: '.'
