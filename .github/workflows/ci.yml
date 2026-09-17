@@ -151,20 +151,61 @@ jobs:
             sleep 2
           done
 
-          echo "--- GET /api/hello ---"
+          echo "--- GET /api/hello (公开接口) ---"
           cat /tmp/hello.json
           grep -q 'Hello, World!' /tmp/hello.json
 
-          echo "--- GET /api/system/dept/tree ---"
-          curl -fsS -m 15 http://localhost:8080/api/system/dept/tree > /tmp/tree.json
+          echo "--- GET /api/system/dept/tree 未带令牌,应被拦截为 401 ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 http://localhost:8080/api/system/dept/tree)
+          echo "http_code=${code}"
+          test "${code}" = "401"
+
+          echo "--- POST /api/auth/login ---"
+          curl -fsS -m 15 -X POST http://localhost:8080/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"userName":"admin","password":"admin123"}' > /tmp/login.json
+          cat /tmp/login.json
+          jq -e '.code == 200' /tmp/login.json > /dev/null
+          AT="$(jq -r '.data.accessToken' /tmp/login.json)"
+          RT="$(jq -r '.data.refreshToken' /tmp/login.json)"
+          test -n "${AT}" && test "${AT}" != "null"
+          test -n "${RT}" && test "${RT}" != "null"
+
+          echo "--- GET /api/system/dept/tree 带 accessToken ---"
+          curl -fsS -m 15 -H "Authorization: Bearer ${AT}" \
+            http://localhost:8080/api/system/dept/tree > /tmp/tree.json
           cat /tmp/tree.json
           # 校验数据库链路真的通了,并且中文没有乱码
           grep -q '总公司' /tmp/tree.json
 
-          echo "--- GET /api/system/permission/1 ---"
-          curl -fsS -m 15 http://localhost:8080/api/system/permission/1 > /tmp/perm.json
-          cat /tmp/perm.json
-          grep -q '\*:\*:\*' /tmp/perm.json
+          echo "--- GET /api/auth/info ---"
+          curl -fsS -m 15 -H "Authorization: Bearer ${AT}" \
+            http://localhost:8080/api/auth/info > /tmp/info.json
+          cat /tmp/info.json
+          grep -q '\*:\*:\*' /tmp/info.json
+
+          echo "--- 用 refreshToken 当 accessToken 应被拒(令牌类型隔离) ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 \
+            -H "Authorization: Bearer ${RT}" http://localhost:8080/api/system/dept/tree)
+          echo "http_code=${code}"
+          test "${code}" = "401"
+
+          echo "--- POST /api/auth/refresh 轮换 ---"
+          curl -fsS -m 15 -X POST http://localhost:8080/api/auth/refresh \
+            -H 'Content-Type: application/json' \
+            -d "{\"refreshToken\":\"${RT}\"}" > /tmp/refresh.json
+          jq -e '.code == 200' /tmp/refresh.json > /dev/null
+          NEW_RT="$(jq -r '.data.refreshToken' /tmp/refresh.json)"
+          # 轮换生效的判据:返回的 refreshToken 必须与旧的不同
+          test "${NEW_RT}" != "${RT}"
+          echo "refreshToken rotated"
+
+          echo "--- 复用已轮换的 refreshToken 应被拒(泄露检测) ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST \
+            http://localhost:8080/api/auth/refresh -H 'Content-Type: application/json' \
+            -d "{\"refreshToken\":\"${RT}\"}")
+          echo "http_code=${code}"
+          test "${code}" = "401"
 
           echo "smoke test passed"
 

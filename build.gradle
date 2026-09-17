@@ -10,6 +10,8 @@ description = '权限管理系统后端服务'
 
 ext {
     mybatisPlusVersion = '3.5.3.1'
+    jjwtVersion = '0.12.6'
+    bcryptVersion = '0.10.2'
 }
 
 java {
@@ -29,8 +31,15 @@ dependencies {
     // 持久层:MyBatis-Plus(自带 mybatis-spring-boot 自动配置)
     implementation "com.baomidou:mybatis-plus-boot-starter:${mybatisPlusVersion}"
 
-    // 仅引入加密模块用于 BCrypt 密码存储,不引入完整 Spring Security 以免触发默认鉴权自动配置
-    implementation 'org.springframework.security:spring-security-crypto'
+    // 鉴权自行实现(注解 + 拦截器),不引入 Spring Security
+
+    // 双 token(accessToken / refreshToken)的签发与校验
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+    // 独立的 BCrypt 实现,编译期只带 at.favre.lib:bytes,不依赖 Spring Security
+    implementation "at.favre.lib:bcrypt:${bcryptVersion}"
 
     runtimeOnly 'mysql:mysql-connector-java'
 

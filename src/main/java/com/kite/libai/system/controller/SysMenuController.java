@@ -1,6 +1,7 @@
 package com.kite.libai.system.controller;
 
 import com.kite.libai.common.core.domain.R;
+import com.kite.libai.security.annotation.RequiresPermissions;
 import com.kite.libai.system.domain.SysMenu;
 import com.kite.libai.system.domain.dto.MenuForm;
 import com.kite.libai.system.service.ISysMenuService;
@@ -38,6 +39,7 @@ public class SysMenuController {
      * 菜单列表(平铺)。
      */
     @GetMapping("/list")
+    @RequiresPermissions("system:menu:list")
     public R<List<SysMenu>> list(@RequestParam(required = false) String menuName,
                                  @RequestParam(required = false) Integer status) {
         return R.ok(sysMenuService.selectMenuList(menuName, status));
@@ -47,6 +49,7 @@ public class SysMenuController {
      * 菜单树,含按钮节点,可直接用于角色授权勾选。
      */
     @GetMapping("/tree")
+    @RequiresPermissions("system:menu:list")
     public R<List<SysMenu>> tree(@RequestParam(required = false) String menuName,
                                  @RequestParam(required = false) Integer status) {
         return R.ok(sysMenuService.selectMenuTree(menuName, status));
@@ -56,6 +59,7 @@ public class SysMenuController {
      * 菜单详情。
      */
     @GetMapping("/{menuId}")
+    @RequiresPermissions("system:menu:query")
     public R<SysMenu> detail(@PathVariable Long menuId) {
         return R.ok(sysMenuService.selectMenuById(menuId));
     }
@@ -64,6 +68,7 @@ public class SysMenuController {
      * 新增菜单。
      */
     @PostMapping
+    @RequiresPermissions("system:menu:add")
     public R<Long> add(@RequestBody @Valid MenuForm form) {
         return R.ok("新增成功", sysMenuService.insertMenu(form));
     }
@@ -72,6 +77,7 @@ public class SysMenuController {
      * 修改菜单。
      */
     @PutMapping
+    @RequiresPermissions("system:menu:edit")
     public R<Void> edit(@RequestBody @Valid MenuForm form) {
         sysMenuService.updateMenu(form);
         return R.ok("修改成功", null);
@@ -81,6 +87,7 @@ public class SysMenuController {
      * 删除菜单。
      */
     @DeleteMapping("/{menuId}")
+    @RequiresPermissions("system:menu:remove")
     public R<Void> remove(@PathVariable Long menuId) {
         sysMenuService.deleteMenu(menuId);
         return R.ok("删除成功", null);

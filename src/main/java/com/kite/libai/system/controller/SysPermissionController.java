@@ -1,6 +1,7 @@
 package com.kite.libai.system.controller;
 
 import com.kite.libai.common.core.domain.R;
+import com.kite.libai.security.annotation.RequiresPermissions;
 import com.kite.libai.system.domain.vo.UserPermissionVO;
 import com.kite.libai.system.service.ISysPermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ public class SysPermissionController {
      * 查询指定用户的角色、权限标识与菜单树。
      */
     @GetMapping("/{userId}")
+    @RequiresPermissions("system:user:query")
     public R<UserPermissionVO> userPermission(@PathVariable Long userId) {
         return R.ok(sysPermissionService.getUserPermission(userId));
     }

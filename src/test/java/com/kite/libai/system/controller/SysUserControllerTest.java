@@ -33,7 +33,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("分页接口返回统一 R 结构")
     void pageReturnsUnifiedEnvelope() throws Exception {
-        mockMvc.perform(get("/api/system/user/page").param("pageNum", "1").param("pageSize", "10"))
+        mockMvc.perform(get("/api/system/user/page").header("Authorization", adminToken()).param("pageNum", "1").param("pageSize", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.msg").value("操作成功"))
@@ -44,7 +44,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("详情接口不返回密码字段")
     void detailNeverExposesPassword() throws Exception {
-        mockMvc.perform(get("/api/system/user/{userId}", 1))
+        mockMvc.perform(get("/api/system/user/{userId}", 1).header("Authorization", adminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userName").value("admin"))
                 .andExpect(jsonPath("$.data.deptName").value("研发部门"))
@@ -56,7 +56,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("用户不存在时返回 404")
     void detailReturns404WhenMissing() throws Exception {
-        mockMvc.perform(get("/api/system/user/{userId}", 99999))
+        mockMvc.perform(get("/api/system/user/{userId}", 99999).header("Authorization", adminToken()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404));
     }
@@ -71,6 +71,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
         form.setPassword("123");
 
         mockMvc.perform(post("/api/system/user")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
@@ -87,6 +88,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
         form.setPassword("abc123456");
 
         mockMvc.perform(post("/api/system/user")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
@@ -104,6 +106,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
         form.setRoleIds(Collections.singletonList(2L));
 
         mockMvc.perform(post("/api/system/user")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isOk())
@@ -115,7 +118,7 @@ class SysUserControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("业务规则拒绝删除超级管理员,返回 400 与中文提示")
     void deleteAdminRejected() throws Exception {
-        mockMvc.perform(delete("/api/system/user/{userIds}", "1"))
+        mockMvc.perform(delete("/api/system/user/{userIds}", "1").header("Authorization", adminToken()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.msg").value("超级管理员账号不允许删除"));
@@ -124,23 +127,23 @@ class SysUserControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("修改状态接口生效")
     void changeStatus() throws Exception {
-        mockMvc.perform(put("/api/system/user/{userId}/status", 2).param("status", "1"))
+        mockMvc.perform(put("/api/system/user/{userId}/status", 2).header("Authorization", adminToken()).param("status", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.msg").value("状态修改成功"));
 
-        mockMvc.perform(get("/api/system/user/{userId}", 2))
+        mockMvc.perform(get("/api/system/user/{userId}", 2).header("Authorization", adminToken()))
                 .andExpect(jsonPath("$.data.status").value(1));
     }
 
     @Test
     @DisplayName("按部门筛选时连带子孙部门的用户")
     void pageFilteredByDeptIncludesDescendants() throws Exception {
-        mockMvc.perform(get("/api/system/user/page").param("deptId", "4"))
+        mockMvc.perform(get("/api/system/user/page").header("Authorization", adminToken()).param("deptId", "4"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.rows[0].userName").value("kite"));
 
-        mockMvc.perform(get("/api/system/user/page").param("deptId", "1"))
+        mockMvc.perform(get("/api/system/user/page").header("Authorization", adminToken()).param("deptId", "1"))
                 .andExpect(jsonPath("$.data.total").value(2));
     }
 }

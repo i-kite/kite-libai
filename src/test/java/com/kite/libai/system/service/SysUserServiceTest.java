@@ -15,7 +15,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.kite.libai.security.crypto.PasswordEncoder;
 
 /**
  * 用户管理集成测试。

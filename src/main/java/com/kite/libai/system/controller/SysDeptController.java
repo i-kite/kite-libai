@@ -1,6 +1,7 @@
 package com.kite.libai.system.controller;
 
 import com.kite.libai.common.core.domain.R;
+import com.kite.libai.security.annotation.RequiresPermissions;
 import com.kite.libai.system.domain.SysDept;
 import com.kite.libai.system.domain.dto.DeptForm;
 import com.kite.libai.system.service.ISysDeptService;
@@ -38,6 +39,7 @@ public class SysDeptController {
      * 部门列表(平铺)。
      */
     @GetMapping("/list")
+    @RequiresPermissions("system:dept:list")
     public R<List<SysDept>> list(@RequestParam(required = false) String deptName,
                                  @RequestParam(required = false) Integer status) {
         return R.ok(sysDeptService.selectDeptList(deptName, status));
@@ -47,6 +49,7 @@ public class SysDeptController {
      * 部门树。
      */
     @GetMapping("/tree")
+    @RequiresPermissions("system:dept:list")
     public R<List<SysDept>> tree(@RequestParam(required = false) String deptName,
                                  @RequestParam(required = false) Integer status) {
         return R.ok(sysDeptService.selectDeptTree(deptName, status));
@@ -56,6 +59,7 @@ public class SysDeptController {
      * 部门详情。
      */
     @GetMapping("/{deptId}")
+    @RequiresPermissions("system:dept:query")
     public R<SysDept> detail(@PathVariable Long deptId) {
         return R.ok(sysDeptService.selectDeptById(deptId));
     }
@@ -64,6 +68,7 @@ public class SysDeptController {
      * 新增部门。
      */
     @PostMapping
+    @RequiresPermissions("system:dept:add")
     public R<Long> add(@RequestBody @Valid DeptForm form) {
         return R.ok("新增成功", sysDeptService.insertDept(form));
     }
@@ -72,6 +77,7 @@ public class SysDeptController {
      * 修改部门。
      */
     @PutMapping
+    @RequiresPermissions("system:dept:edit")
     public R<Void> edit(@RequestBody @Valid DeptForm form) {
         sysDeptService.updateDept(form);
         return R.ok("修改成功", null);
@@ -81,6 +87,7 @@ public class SysDeptController {
      * 删除部门。
      */
     @DeleteMapping("/{deptId}")
+    @RequiresPermissions("system:dept:remove")
     public R<Void> remove(@PathVariable Long deptId) {
         sysDeptService.deleteDept(deptId);
         return R.ok("删除成功", null);

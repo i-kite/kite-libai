@@ -45,6 +45,15 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+kite:
+  security:
+    jwt:
+      # 测试用固定密钥,仅用于让签名可复现,不具备任何保密价值
+      secret: kite-libai-test-only-secret-key-not-for-production-use
+      access-token-expire-minutes: 30
+      refresh-token-expire-days: 7
+      issuer: kite-libai
+
 logging:
   level:
     com.kite.libai: info

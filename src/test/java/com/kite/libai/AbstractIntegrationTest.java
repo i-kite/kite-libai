@@ -1,5 +1,9 @@
 package com.kite.libai;
 
+import com.kite.libai.common.constant.SecurityConstants;
+import com.kite.libai.security.token.JwtTokenProvider;
+import com.kite.libai.security.token.TokenType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,4 +27,36 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @Transactional
 public abstract class AbstractIntegrationTest {
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    /**
+     * 构造指定用户的 Authorization 请求头值。
+     *
+     * <p>业务接口已由 AuthInterceptor 拦截并校验权限,MockMvc 请求必须带上访问令牌。
+     * 这里直接签发令牌而不走登录接口,是为了让被测目标保持是控制器本身,
+     * 不因登录流程的问题连带影响一批用例。
+     *
+     * @param userId   用户ID
+     * @param userName 登录账号
+     */
+    protected String bearerToken(Long userId, String userName) {
+        return SecurityConstants.TOKEN_PREFIX
+                + jwtTokenProvider.issue(userId, userName, TokenType.ACCESS).getToken();
+    }
+
+    /**
+     * 超级管理员(admin,拥有全部权限)的 Authorization 头值。
+     */
+    protected String adminToken() {
+        return bearerToken(1L, "admin");
+    }
+
+    /**
+     * 普通用户 kite 的 Authorization 头值,仅有 system:user:list / system:user:query 权限。
+     */
+    protected String normalUserToken() {
+        return bearerToken(2L, "kite");
+    }
 }

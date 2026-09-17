@@ -31,7 +31,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("部门树接口返回嵌套结构")
     void treeReturnsNestedStructure() throws Exception {
-        mockMvc.perform(get("/api/system/dept/tree"))
+        mockMvc.perform(get("/api/system/dept/tree").header("Authorization", adminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.length()").value(1))
@@ -44,7 +44,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("平铺列表接口支持按名称过滤")
     void listSupportsNameFilter() throws Exception {
-        mockMvc.perform(get("/api/system/dept/list").param("deptName", "研发"))
+        mockMvc.perform(get("/api/system/dept/list").header("Authorization", adminToken()).param("deptName", "研发"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].deptId").value(2));
@@ -53,7 +53,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("响应体不包含 delFlag 等内部字段")
     void responseHidesInternalFields() throws Exception {
-        mockMvc.perform(get("/api/system/dept/{deptId}", 2))
+        mockMvc.perform(get("/api/system/dept/{deptId}", 2).header("Authorization", adminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.ancestors").value("0,1"))
                 // delFlag 在实体上标注了 select = false,且响应配置了 non_null,不应出现
@@ -67,6 +67,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
         // parentId、deptName、orderNum 均未提供
 
         mockMvc.perform(post("/api/system/dept")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
@@ -83,6 +84,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
         form.setPhone("12345");
 
         mockMvc.perform(post("/api/system/dept")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
@@ -92,7 +94,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("删除仍有下级的部门返回 400 与中文提示")
     void deleteWithChildrenRejected() throws Exception {
-        mockMvc.perform(delete("/api/system/dept/{deptId}", 2))
+        mockMvc.perform(delete("/api/system/dept/{deptId}", 2).header("Authorization", adminToken()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.msg").value("该部门下仍存在下级部门,不允许删除"));
     }
@@ -106,6 +108,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
         form.setOrderNum(1);
 
         String body = mockMvc.perform(post("/api/system/dept")
+                        .header("Authorization", adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isOk())
@@ -113,7 +116,7 @@ class SysDeptControllerTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
 
         long newId = objectMapper.readTree(body).get("data").asLong();
-        mockMvc.perform(get("/api/system/dept/{deptId}", newId))
+        mockMvc.perform(get("/api/system/dept/{deptId}", newId).header("Authorization", adminToken()))
                 .andExpect(jsonPath("$.data.deptName").value("渠道组"))
                 .andExpect(jsonPath("$.data.ancestors").value("0,1,3"));
     }

@@ -45,6 +45,19 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+kite:
+  security:
+    jwt:
+      # 签名密钥。刻意不提供硬编码默认值——写进仓库的密钥等同于公开密钥。
+      # 生产必须通过环境变量注入,长度不少于 32 字节(可用 openssl rand -base64 32 生成)。
+      # 留空时应用启动会随机生成并打 WARN 日志,后果是重启后令牌全失效、多实例之间不通用。
+      secret: ${JWT_SECRET:}
+      # 访问令牌有效期(分钟)。短有效期是双令牌方案的前提,不要调大。
+      access-token-expire-minutes: ${JWT_ACCESS_MINUTES:30}
+      # 刷新令牌有效期(天),决定用户多久必须重新输入密码
+      refresh-token-expire-days: ${JWT_REFRESH_DAYS:7}
+      issuer: kite-libai
+
 logging:
   level:
     com.kite.libai: info

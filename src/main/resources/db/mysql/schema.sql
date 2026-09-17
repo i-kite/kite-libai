@@ -153,3 +153,28 @@ CREATE TABLE sys_role_menu
     PRIMARY KEY (role_id, menu_id),
     KEY idx_rm_menu_id (menu_id)
 ) COMMENT '角色菜单关联表';
+
+-- ----------------------------
+-- 7、刷新令牌表
+--
+-- 为什么 refreshToken 要落库:JWT 本身无状态,签发后在有效期内无法作废,
+-- 这会导致"登出无效"和"令牌泄露后长期可用"两个问题。这里用 jti 白名单解决:
+--   1. 登录时签发并落库,刷新时必须命中未撤销、未过期的记录
+--   2. 刷新采用轮换,旧记录立即撤销
+--   3. 一旦发现已撤销的 jti 被再次使用,视为令牌泄露,撤销该用户全部刷新令牌
+-- 只存 jti 不存令牌串:JWT 签名已保证不可伪造,存原文反而增加泄露面。
+-- accessToken 仍保持无状态、有效期短,不落库,避免每次请求都查库。
+-- ----------------------------
+DROP TABLE IF EXISTS sys_refresh_token;
+CREATE TABLE sys_refresh_token
+(
+    id          bigint      NOT NULL AUTO_INCREMENT COMMENT '主键',
+    token_id    varchar(64) NOT NULL COMMENT '令牌唯一标识(JWT 的 jti)',
+    user_id     bigint      NOT NULL COMMENT '所属用户ID',
+    expires_at  datetime    NOT NULL COMMENT '过期时间',
+    revoked     tinyint     NOT NULL DEFAULT 0 COMMENT '是否已撤销:0-否 1-是',
+    create_time datetime             DEFAULT NULL COMMENT '签发时间',
+    PRIMARY KEY (id),
+    KEY idx_rt_token_id (token_id),
+    KEY idx_rt_user_id (user_id)
+) COMMENT '刷新令牌表';
