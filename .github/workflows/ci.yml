@@ -1,16 +1,16 @@
-name: Build and Push Image
+name: CI
 
 on:
   push:
-    branches: ['main', 'master']
+    branches: ['main']
     tags: ['v*']
-  pull_request:
-    branches: ['main', 'master']
   workflow_dispatch:
 
 jobs:
-  build-image:
+  build:
     uses: x-k-io/ci-template/.github/workflows/java-service-build-image.yml@main
+    permissions:
+      contents: read
+      packages: write
     with:
       image_name: ${{ github.repository }}
-      context_path: '.'
