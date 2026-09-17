@@ -12,5 +12,6 @@ jobs:
     permissions:
       contents: read
       packages: write
+    secrets: inherit
     with:
       image_name: ${{ github.repository }}
